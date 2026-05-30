@@ -141,9 +141,9 @@ Where `rates` is the inner object keyed by the user's display currency.
 
 ### 3.1 CORS Strategy (three-tier)
 
-1. **Direct browser fetch** — attempted first. Works because the browser solves the Cloudflare JS challenge automatically. This is the primary and most reliable path.
-2. **Cloudflare Worker proxy** (`/api/proxy/...`) — fallback if the browser fetch is blocked by CORS headers. The Worker injects `Access-Control-Allow-Origin: *` on the response. **Known risk:** the Worker itself makes a server-side fetch to `chatgpt.com`, which may trigger the same Cloudflare bot challenge that blocks `curl`. This must be validated during implementation. If the Worker fetch is also challenged, the Worker falls through to the static fallback.
-3. **Static JSON fallback** — a GitHub Actions workflow runs daily using Playwright (headless Chromium) to bypass the Cloudflare challenge, fetches all country configs, and commits them to `public/data/fallback/`. If both live sources fail, the app loads this snapshot with a "prices may be outdated" banner.
+1. **Direct browser fetch** — attempted first. The browser handles any Cloudflare challenge automatically. This is the primary and most reliable path.
+2. **Cloudflare Worker proxy** (`/api/proxy/...`) — fallback if the browser fetch is blocked by CORS headers. The Worker injects `Access-Control-Allow-Origin: *` on the response. If the Worker's server-side fetch to `chatgpt.com` is blocked by a Cloudflare challenge, the [obscura](https://github.com/h4ckf0r0day/obscura) library will be used to solve it. This is treated as a contingency — do not integrate obscura unless the challenge is actually encountered during implementation.
+3. **Static JSON fallback** — a GitHub Actions workflow runs daily using Playwright (headless Chromium) to fetch all country configs and commit them to `public/data/fallback/`. If both live sources fail, the app loads this snapshot with a "prices may be outdated" banner. If Playwright also encounters a challenge, obscura is the fallback there too.
 
 ### 3.2 Data Fetching Strategy
 
