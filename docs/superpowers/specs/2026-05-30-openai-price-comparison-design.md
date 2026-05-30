@@ -141,9 +141,9 @@ Where `rates` is the inner object keyed by the user's display currency.
 
 ### 3.1 CORS Strategy (three-tier)
 
-1. **Direct browser fetch** — attempted first. Works because the browser solves the Cloudflare JS challenge automatically.
-2. **Cloudflare Worker proxy** (`/api/proxy/...`) — fallback if CORS headers are absent or the direct fetch fails. The Worker forwards the request with browser-like headers and injects `Access-Control-Allow-Origin: *`.
-3. **Static JSON fallback** — a GitHub Actions workflow runs daily, fetches all country configs, and commits them to `public/data/fallback/`. If both live sources fail, the app loads this snapshot with a "prices may be outdated" banner.
+1. **Direct browser fetch** — attempted first. Works because the browser solves the Cloudflare JS challenge automatically. This is the primary and most reliable path.
+2. **Cloudflare Worker proxy** (`/api/proxy/...`) — fallback if the browser fetch is blocked by CORS headers. The Worker injects `Access-Control-Allow-Origin: *` on the response. **Known risk:** the Worker itself makes a server-side fetch to `chatgpt.com`, which may trigger the same Cloudflare bot challenge that blocks `curl`. This must be validated during implementation. If the Worker fetch is also challenged, the Worker falls through to the static fallback.
+3. **Static JSON fallback** — a GitHub Actions workflow runs daily using Playwright (headless Chromium) to bypass the Cloudflare challenge, fetches all country configs, and commits them to `public/data/fallback/`. If both live sources fail, the app loads this snapshot with a "prices may be outdated" banner.
 
 ### 3.2 Data Fetching Strategy
 
@@ -353,12 +353,13 @@ Country names are NOT in the translation files — they use `Intl.DisplayNames` 
 4. Return the upstream response with `Access-Control-Allow-Origin: *` injected
 5. Cache successful responses in the CF Cache API for 5 minutes
 
-**wrangler.toml:**
+**wrangler.toml** (deployment-time values filled in when the Cloudflare Pages project is created):
 ```toml
 name = "openai-price-proxy"
 main = "worker/index.ts"
 compatibility_date = "2025-01-01"
 
+# Replace <pages-domain> and <zone> with actual values after Pages project creation
 [[routes]]
 pattern = "<pages-domain>/api/proxy/*"
 zone_name = "<zone>"
@@ -389,7 +390,7 @@ jobs:
           git push
 ```
 
-The snapshot script fetches all country configs using a headless-browser-compatible approach (or a service that can bypass CF challenge) and writes them to `public/data/fallback/{CC}.json`.
+The snapshot script uses Playwright (headless Chromium) on the GitHub Actions runner to bypass the Cloudflare JS challenge, fetches all country configs, and writes them to `public/data/fallback/{CC}.json`. Playwright is required because the CF challenge cannot be solved by a plain `fetch` call.
 
 ---
 
