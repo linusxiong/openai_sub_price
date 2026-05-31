@@ -31,5 +31,10 @@ export function getPlanAmount(
   if (!plan) return null;
   const intervalData = plan[interval] ?? plan.month;
   if (!intervalData) return null;
-  return intervalData.amount;
+
+  const amount = intervalData.amount;
+  if (intervalData.tax === "inclusive" && currencyConfig.tax_percent > 0) {
+    return amount / (1 + currencyConfig.tax_percent / 100);
+  }
+  return amount;
 }
