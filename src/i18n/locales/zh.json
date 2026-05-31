@@ -1,0 +1,38 @@
+{
+  "app": {
+    "title": "ChatGPT 价格对比",
+    "tagline": "实时查看全球各地区订阅价格"
+  },
+  "columns": {
+    "rank": "#",
+    "country": "国家",
+    "currency": "货币"
+  },
+  "plans": {
+    "free": "免费",
+    "go": "Go",
+    "plus": "Plus",
+    "prolite": "Pro Lite",
+    "pro": "Pro",
+    "business": "团队版",
+    "nonProfit": "非营利"
+  },
+  "billing": {
+    "label": "计费周期",
+    "monthly": "月付",
+    "annual": "年付"
+  },
+  "ui": {
+    "loading": "正在加载价格...",
+    "fetching": "正在获取 {{completed}} / {{total}} 个国家",
+    "error": "加载价格数据失败",
+    "retry": "重试",
+    "unavailable": "N/A",
+    "outdatedBanner": "价格可能已过期",
+    "currencyLabel": "显示货币",
+    "languageLabel": "语言",
+    "exchangeRateError": "汇率不可用 - 仅显示当地价格",
+    "darkMode": "深色模式",
+    "lightMode": "浅色模式"
+  }
+}

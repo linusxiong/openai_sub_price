@@ -1,0 +1,38 @@
+{
+  "app": {
+    "title": "Comparaison des prix ChatGPT",
+    "tagline": "Prix des abonnements en temps reel dans toutes les regions"
+  },
+  "columns": {
+    "rank": "#",
+    "country": "Pays",
+    "currency": "Devise"
+  },
+  "plans": {
+    "free": "Gratuit",
+    "go": "Go",
+    "plus": "Plus",
+    "prolite": "Pro Lite",
+    "pro": "Pro",
+    "business": "Equipe",
+    "nonProfit": "Non lucratif"
+  },
+  "billing": {
+    "label": "Facturation",
+    "monthly": "Mensuel",
+    "annual": "Annuel"
+  },
+  "ui": {
+    "loading": "Chargement des prix...",
+    "fetching": "Recuperation de {{completed}} sur {{total}} pays",
+    "error": "Echec du chargement des donnees de prix",
+    "retry": "Reessayer",
+    "unavailable": "N/A",
+    "outdatedBanner": "Les prix peuvent etre obsoletes",
+    "currencyLabel": "Devise d'affichage",
+    "languageLabel": "Langue",
+    "exchangeRateError": "Taux de change indisponibles - affichage des prix locaux uniquement",
+    "darkMode": "Mode sombre",
+    "lightMode": "Mode clair"
+  }
+}

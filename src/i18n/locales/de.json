@@ -1,0 +1,38 @@
+{
+  "app": {
+    "title": "ChatGPT Preisvergleich",
+    "tagline": "Echtzeit-Abonnementpreise aus allen Regionen"
+  },
+  "columns": {
+    "rank": "#",
+    "country": "Land",
+    "currency": "Wahrung"
+  },
+  "plans": {
+    "free": "Kostenlos",
+    "go": "Go",
+    "plus": "Plus",
+    "prolite": "Pro Lite",
+    "pro": "Pro",
+    "business": "Team",
+    "nonProfit": "Non-Profit"
+  },
+  "billing": {
+    "label": "Abrechnung",
+    "monthly": "Monatlich",
+    "annual": "Jahrlich"
+  },
+  "ui": {
+    "loading": "Preise werden geladen...",
+    "fetching": "{{completed}} von {{total}} Landern werden abgerufen",
+    "error": "Preisdaten konnten nicht geladen werden",
+    "retry": "Erneut versuchen",
+    "unavailable": "N/A",
+    "outdatedBanner": "Preise sind moglicherweise veraltet",
+    "currencyLabel": "Anzeigewahrung",
+    "languageLabel": "Sprache",
+    "exchangeRateError": "Wechselkurse nicht verfugbar - nur lokale Preise angezeigt",
+    "darkMode": "Dunkelmodus",
+    "lightMode": "Hellmodus"
+  }
+}

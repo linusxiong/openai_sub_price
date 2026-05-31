@@ -1,0 +1,38 @@
+{
+  "app": {
+    "title": "ChatGPT 料金比較",
+    "tagline": "全地域のサブスクリプション料金をリアルタイムで比較"
+  },
+  "columns": {
+    "rank": "#",
+    "country": "国",
+    "currency": "通貨"
+  },
+  "plans": {
+    "free": "無料",
+    "go": "Go",
+    "plus": "Plus",
+    "prolite": "Pro Lite",
+    "pro": "Pro",
+    "business": "チーム",
+    "nonProfit": "非営利"
+  },
+  "billing": {
+    "label": "請求",
+    "monthly": "月額",
+    "annual": "年額"
+  },
+  "ui": {
+    "loading": "料金を読み込み中...",
+    "fetching": "{{completed}} / {{total}} か国を取得中",
+    "error": "料金データの読み込みに失敗しました",
+    "retry": "再試行",
+    "unavailable": "N/A",
+    "outdatedBanner": "料金が古い可能性があります",
+    "currencyLabel": "表示通貨",
+    "languageLabel": "言語",
+    "exchangeRateError": "為替レートが利用できません - 現地価格のみ表示",
+    "darkMode": "ダークモード",
+    "lightMode": "ライトモード"
+  }
+}
