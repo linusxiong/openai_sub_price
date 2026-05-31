@@ -1,73 +1,85 @@
-# React + TypeScript + Vite
+# ChatGPT Price Comparison
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[中文文档](./README.zh-CN.md)
 
-Currently, two official plugins are available:
+A React app for comparing ChatGPT subscription prices across supported countries and regions. It fetches regional pricing data, converts prices into a selected display currency, and presents the result in a sortable, plan-focused table.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- Compare subscription prices by plan and billing interval
+- Convert local prices into a selected display currency
+- Sort countries and regions by converted price
+- Copy both the two-letter country/region code and three-letter currency code, such as `US USD`
+- Refresh pricing data from the backend with a global refresh button
+- Persist language, theme, currency, plan, billing, and sorting preferences locally
+- Responsive UI built with HeroUI v3 and Tailwind CSS v4
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+- React 19
+- TypeScript
+- Vite
+- HeroUI v3
+- Tailwind CSS v4
+- Zustand
+- Cloudflare Pages
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Local Development
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open the local URL printed by Vite. It is usually `http://127.0.0.1:5173/`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Verification
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm test
+npm run lint
+npm run build
 ```
+
+## Deployment
+
+This project is currently configured for a Cloudflare Pages static deployment. The API proxy Worker is temporarily disabled so the deployed app can test whether direct browser requests to the upstream pricing endpoint hit CORS restrictions.
+
+Sign in to Wrangler once:
+
+```bash
+npx wrangler login
+```
+
+Build and deploy:
+
+```bash
+npm run deploy:pages
+```
+
+For the Cloudflare Pages dashboard, use:
+
+- Build command: `npm run build`
+- Build output directory: `dist`
+
+The Worker proxy file at [`worker/index.ts`](./worker/index.ts) and the Worker settings in [`wrangler.toml`](./wrangler.toml) are commented out for now.
+The active Wrangler config only points Pages at `dist`.
+The `deploy:pages` script sets `CLOUDFLARE_ACCOUNT_ID` for the Linus Cloudflare account so Wrangler can run non-interactively.
+
+## Project Structure
+
+```text
+src/
+  components/      React UI components
+  hooks/           Pricing and exchange-rate hooks
+  i18n/            Localized UI strings
+  services/        Pricing and exchange-rate clients
+  store/           Persisted user preferences
+  utils/           Price and currency helpers
+worker/
+  index.ts         Disabled Cloudflare Worker proxy
+```
+
+## Notes
+
+The app uses the browser session cache to avoid repeatedly fetching every country configuration during short sessions. Use the refresh button in the header to clear that cache and request fresh pricing data.

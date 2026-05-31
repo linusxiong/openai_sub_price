@@ -35,6 +35,8 @@
     "currencyLabel": "Display currency",
     "languageLabel": "Language",
     "exchangeRateError": "Exchange rates unavailable - showing local prices only",
+    "refresh": "Refresh data",
+    "refreshing": "Refreshing data",
     "darkMode": "Dark mode",
     "lightMode": "Light mode",
     "lowest": "Lowest"

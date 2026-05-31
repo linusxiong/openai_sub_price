@@ -35,6 +35,8 @@
     "currencyLabel": "显示货币",
     "languageLabel": "语言",
     "exchangeRateError": "汇率不可用 - 仅显示当地价格",
+    "refresh": "刷新数据",
+    "refreshing": "正在刷新数据",
     "darkMode": "深色模式",
     "lightMode": "浅色模式",
     "lowest": "最低"

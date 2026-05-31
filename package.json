@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "node --experimental-strip-types --test \"src/**/*.test.mjs\"",
+    "deploy:pages": "npm run build && CLOUDFLARE_ACCOUNT_ID=31a46fda7d6e1f39cbb92e09730ef39c wrangler pages deploy dist --project-name openai-sub-price",
     "preview": "vite preview"
   },
   "dependencies": {

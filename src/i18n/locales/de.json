@@ -35,6 +35,8 @@
     "currencyLabel": "Anzeigewahrung",
     "languageLabel": "Sprache",
     "exchangeRateError": "Wechselkurse nicht verfugbar - nur lokale Preise angezeigt",
+    "refresh": "Daten aktualisieren",
+    "refreshing": "Daten werden aktualisiert",
     "darkMode": "Dunkelmodus",
     "lightMode": "Hellmodus",
     "lowest": "Günstigste"

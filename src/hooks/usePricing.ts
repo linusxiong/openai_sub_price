@@ -43,11 +43,12 @@ function saveCache(configs: Map<string, CountryConfig>) {
 }
 
 export function usePricing() {
+  const [initialCache] = useState(() => loadCache());
   const [configs, setConfigs] = useState<Map<string, CountryConfig>>(() => {
-    return loadCache() ?? new Map();
+    return initialCache ?? new Map();
   });
   const [progress, setProgress] = useState<PricingProgress>({ completed: 0, total: 0 });
-  const [isLoading, setIsLoading] = useState(() => !loadCache());
+  const [isLoading, setIsLoading] = useState(() => !initialCache);
   const [isError, setIsError] = useState(false);
   const abortRef = useRef(false);
 
@@ -103,17 +104,17 @@ export function usePricing() {
   }, []);
 
   useEffect(() => {
-    const cached = loadCache();
-    if (cached && cached.size > 0) {
-      setConfigs(cached);
-      setIsLoading(false);
+    if (initialCache && initialCache.size > 0) {
       return;
     }
-    fetchData();
+    const timeoutId = window.setTimeout(() => {
+      void fetchData();
+    }, 0);
     return () => {
       abortRef.current = true;
+      window.clearTimeout(timeoutId);
     };
-  }, [fetchData]);
+  }, [fetchData, initialCache]);
 
   const refetch = useCallback(() => {
     sessionStorage.removeItem(CACHE_KEY);

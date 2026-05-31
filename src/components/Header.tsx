@@ -1,9 +1,16 @@
+import { Button } from "@heroui/react";
+import { ArrowClockwise } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import { CurrencySelector } from "./CurrencySelector";
 import { LanguageSelector } from "./LanguageSelector";
 import { ThemeToggle } from "./ThemeToggle";
 
-export function Header() {
+interface HeaderProps {
+  isRefreshing: boolean;
+  onRefresh: () => void;
+}
+
+export function Header({ isRefreshing, onRefresh }: HeaderProps) {
   const { t } = useTranslation();
 
   return (
@@ -18,6 +25,19 @@ export function Header() {
           </span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            isIconOnly
+            isDisabled={isRefreshing}
+            onPress={onRefresh}
+            aria-label={isRefreshing ? t("ui.refreshing") : t("ui.refresh")}
+          >
+            <ArrowClockwise
+              size={17}
+              className={isRefreshing ? "animate-spin" : undefined}
+            />
+          </Button>
           <LanguageSelector />
           <CurrencySelector />
           <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-0.5" />

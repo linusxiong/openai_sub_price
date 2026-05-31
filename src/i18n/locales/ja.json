@@ -35,6 +35,8 @@
     "currencyLabel": "表示通貨",
     "languageLabel": "言語",
     "exchangeRateError": "為替レートが利用できません - 現地価格のみ表示",
+    "refresh": "データを更新",
+    "refreshing": "データを更新中",
     "darkMode": "ダークモード",
     "lightMode": "ライトモード",
     "lowest": "最安"

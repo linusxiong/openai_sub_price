@@ -55,7 +55,9 @@ export function PriceSidebar({ configs, exchangeRates }: PriceSidebarProps) {
       let name = cc;
       try {
         name = countryNames?.of(cc) ?? cc;
-      } catch {}
+      } catch {
+        // Non-standard codes like US2, EU, XK
+      }
 
       rows.push({
         countryCode: cc,

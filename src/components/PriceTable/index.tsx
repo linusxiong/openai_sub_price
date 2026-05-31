@@ -7,6 +7,7 @@ import { getPlanAmount } from "../../utils/plans";
 import { convertPrice, formatCurrency } from "../../utils/currency";
 import { usePreferences } from "../../store/preferences";
 import { StatusBadge } from "./StatusBadge";
+import { formatCountryCurrencyCode } from "./copyPayload";
 
 interface PriceTableProps {
   configs: Map<string, CountryConfig>;
@@ -90,9 +91,10 @@ export function PriceTable({
   };
 
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const copyCountryCode = useCallback((code: string) => {
-    navigator.clipboard.writeText(code).then(() => {
-      setCopiedCode(code);
+  const copyCountryCurrencyCode = useCallback((countryCode: string, currencyCode: string) => {
+    const payload = formatCountryCurrencyCode(countryCode, currencyCode);
+    navigator.clipboard.writeText(payload).then(() => {
+      setCopiedCode(payload);
       setTimeout(() => setCopiedCode(null), 1500);
     }).catch(() => {});
   }, []);
@@ -151,14 +153,14 @@ export function PriceTable({
                 </td>
                 <td className="px-3 py-2.5">
                   <button
-                    onClick={() => copyCountryCode(row.countryCode)}
+                    onClick={() => copyCountryCurrencyCode(row.countryCode, row.currencyCode)}
                     className="group inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors cursor-pointer"
-                    title={`Copy ${row.countryCode}`}
-                    aria-label={`Copy country code ${row.countryCode}`}
+                    title={`Copy ${formatCountryCurrencyCode(row.countryCode, row.currencyCode)}`}
+                    aria-label={`Copy country and currency codes ${formatCountryCurrencyCode(row.countryCode, row.currencyCode)}`}
                   >
                     {row.flag} {row.countryName}
                     <span className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 dark:text-zinc-500">
-                      {copiedCode === row.countryCode
+                      {copiedCode === formatCountryCurrencyCode(row.countryCode, row.currencyCode)
                         ? <Check size={12} weight="bold" className="text-emerald-500" />
                         : <Copy size={12} />}
                     </span>

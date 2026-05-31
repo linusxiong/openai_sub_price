@@ -35,6 +35,8 @@
     "currencyLabel": "Devise d'affichage",
     "languageLabel": "Langue",
     "exchangeRateError": "Taux de change indisponibles - affichage des prix locaux uniquement",
+    "refresh": "Actualiser les donnees",
+    "refreshing": "Actualisation des donnees",
     "darkMode": "Mode sombre",
     "lightMode": "Mode clair",
     "lowest": "Le moins cher"

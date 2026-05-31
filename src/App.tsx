@@ -30,7 +30,7 @@ export default function App() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-zinc-50 dark:bg-zinc-950">
-      <Header />
+      <Header isRefreshing={isLoading} onRefresh={refetch} />
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-5">
 
         {/* Initial load — no data yet */}

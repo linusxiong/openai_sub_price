@@ -35,6 +35,8 @@
     "currencyLabel": "Moneda de visualizacion",
     "languageLabel": "Idioma",
     "exchangeRateError": "Tasas de cambio no disponibles - mostrando solo precios locales",
+    "refresh": "Actualizar datos",
+    "refreshing": "Actualizando datos",
     "darkMode": "Modo oscuro",
     "lightMode": "Modo claro",
     "lowest": "Más barato"

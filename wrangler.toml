@@ -1,3 +1,11 @@
-name = "openai-price-proxy"
-main = "worker/index.ts"
+name = "openai-sub-price"
+pages_build_output_dir = "dist"
 compatibility_date = "2025-01-01"
+
+# API proxy / Workers deployment is temporarily disabled.
+# Current deployment target: Cloudflare Pages static upload from ./dist.
+# main = "worker/index.ts"
+#
+# [assets]
+# directory = "./dist"
+# not_found_handling = "single-page-application"
