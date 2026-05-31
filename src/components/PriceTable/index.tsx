@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { ArrowUp, ArrowDown } from "@phosphor-icons/react";
+import { useMemo, useState, useCallback } from "react";
+import { ArrowUp, ArrowDown, Check, Copy } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import type { CountryConfig } from "../../types/pricing";
 import type { ExchangeRateData } from "../../services/exchange-rates";
@@ -89,6 +89,14 @@ export function PriceTable({
     setSortDirection(sortDirection === "ascending" ? "descending" : "ascending");
   };
 
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const copyCountryCode = useCallback((code: string) => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 1500);
+    }).catch(() => {});
+  }, []);
+
   return (
     <div className="flex flex-col gap-2">
       {exchangeRateError && (
@@ -142,9 +150,19 @@ export function PriceTable({
                   </span>
                 </td>
                 <td className="px-3 py-2.5">
-                  <span className="whitespace-nowrap text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                  <button
+                    onClick={() => copyCountryCode(row.countryCode)}
+                    className="group inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors cursor-pointer"
+                    title={`Copy ${row.countryCode}`}
+                    aria-label={`Copy country code ${row.countryCode}`}
+                  >
                     {row.flag} {row.countryName}
-                  </span>
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 dark:text-zinc-500">
+                      {copiedCode === row.countryCode
+                        ? <Check size={12} weight="bold" className="text-emerald-500" />
+                        : <Copy size={12} />}
+                    </span>
+                  </button>
                 </td>
                 <td className="px-3 py-2.5">
                   {row.originalAmount !== null ? (
