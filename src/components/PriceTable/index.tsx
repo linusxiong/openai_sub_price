@@ -38,9 +38,8 @@ export function PriceTable({
     displayCurrency,
     billingInterval,
     setBillingInterval,
-    sortPlan,
+    activePlan: sortPlan,
     sortDirection,
-    setSortPlan,
     setSortDirection,
   } = usePreferences();
 
@@ -95,13 +94,7 @@ export function PriceTable({
 
   const sortedRows = useMemo(() => {
     const sorted = [...rows].sort((a, b) => {
-      if (sortPlan === "country") {
-        return a.countryName.localeCompare(b.countryName);
-      }
-      if (sortPlan === "currency") {
-        return a.currencyCode.localeCompare(b.currencyCode);
-      }
-      const planKey = sortPlan as PlanKey;
+      const planKey = sortPlan;
       const aVal =
         a.plans[planKey]?.convertedAmount ??
         a.plans[planKey]?.originalAmount ??
@@ -118,22 +111,17 @@ export function PriceTable({
 
   const handleSort = (column: string) => {
     if (column === "rank") return;
-    if (sortPlan === column) {
-      setSortDirection(sortDirection === "ascending" ? "descending" : "ascending");
-    } else {
-      setSortPlan(column);
-      setSortDirection("ascending");
-    }
+    setSortDirection(sortDirection === "ascending" ? "descending" : "ascending");
   };
 
   const columns = [
     { key: "rank", label: t("columns.rank"), sortable: false },
-    { key: "country", label: t("columns.country"), sortable: true },
-    { key: "currency", label: t("columns.currency"), sortable: true },
+    { key: "country", label: t("columns.country"), sortable: false },
+    { key: "currency", label: t("columns.currency"), sortable: false },
     ...PLAN_ORDER.map((planKey) => ({
       key: planKey,
       label: t(PLAN_LABEL_KEYS[planKey]),
-      sortable: true,
+      sortable: planKey === sortPlan,
     })),
   ];
 
