@@ -11,6 +11,7 @@
 - 按换算价格升序或降序排序
 - 复制国家/地区代码和货币代码，例如 `US USD`
 - 通过全局刷新按钮重新请求最新后端数据
+- 通过同源 Cloudflare Pages Function 代理价格 API 请求
 - 多语言、深色模式和本地偏好保存
 
 ## 技术栈
@@ -42,7 +43,7 @@ npm run build
 
 ## Cloudflare 部署
 
-当前项目配置为 Cloudflare Pages 静态部署。API Proxy Worker 已暂时禁用，用于测试部署后的浏览器直连上游价格接口是否会遇到 CORS 限制。
+当前项目配置为 Cloudflare Pages，并包含一个 `/api/proxy/*` Pages Function 代理。浏览器会先尝试直连上游价格接口；如果被 CORS 或上游浏览器防护拦截，会回退到同源代理。
 
 部署前请先登录 Wrangler：
 
@@ -61,6 +62,6 @@ npm run deploy:pages
 - 构建命令：`npm run build`
 - 构建输出目录：`dist`
 
-`worker/index.ts` 和 `wrangler.toml` 中的 Worker/API Proxy 配置已暂时注释。
-当前有效的 Wrangler 配置只会让 Pages 上传 `dist` 目录。
+旧的 `worker/index.ts` Worker 代理仍保持注释。当前生效的代理位于 `functions/api/proxy/[[path]].ts`。
+Pages Function 的调用范围由 `public/_routes.json` 限制，Vite 构建时会复制到 `dist`。
 `deploy:pages` 脚本会为 Linus 的 Cloudflare 账号设置 `CLOUDFLARE_ACCOUNT_ID`，便于 Wrangler 在非交互模式下部署。

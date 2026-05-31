@@ -1,9 +1,7 @@
 import type { CountriesResponse, CountryConfig } from "../types/pricing";
 
 const DIRECT_BASE = "https://chatgpt.com/backend-api/checkout_pricing_config";
-// API proxy is intentionally disabled while testing Cloudflare Pages-only
-// deployment and browser CORS behavior.
-// const PROXY_BASE = "/api/proxy";
+const PROXY_BASE = "/api/proxy";
 
 async function fetchWithFallback<T>(path: string): Promise<T> {
   try {
@@ -15,22 +13,11 @@ async function fetchWithFallback<T>(path: string): Promise<T> {
     if (!contentType.includes("application/json")) throw new Error("Not JSON");
     return res.json() as Promise<T>;
   } catch {
-    // Temporarily disabled:
-    // try {
-    //   const res = await fetch(`${PROXY_BASE}${path}`, {
-    //     headers: { Accept: "application/json" },
-    //   });
-    //   if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
-    //   return res.json() as Promise<T>;
-    // } catch {
-    //   const snapshotPath = path.includes("/countries")
-    //     ? "/data/fallback/countries.json"
-    //     : `/data/fallback/${path.split("/").pop()}.json`;
-    //   const res = await fetch(snapshotPath);
-    //   if (!res.ok) throw new Error("All fetch strategies failed");
-    //   return res.json() as Promise<T>;
-    // }
-    throw new Error("Direct pricing fetch failed");
+    const res = await fetch(`${PROXY_BASE}${path}`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
+    return res.json() as Promise<T>;
   }
 }
 

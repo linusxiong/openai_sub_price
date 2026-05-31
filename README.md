@@ -11,6 +11,7 @@ A React app for comparing ChatGPT subscription prices across supported countries
 - Sort countries and regions by converted price
 - Copy both the two-letter country/region code and three-letter currency code, such as `US USD`
 - Refresh pricing data from the backend with a global refresh button
+- Same-origin Cloudflare Pages Function proxy for pricing API requests
 - Persist language, theme, currency, plan, billing, and sorting preferences locally
 - Responsive UI built with HeroUI v3 and Tailwind CSS v4
 
@@ -43,7 +44,7 @@ npm run build
 
 ## Deployment
 
-This project is currently configured for a Cloudflare Pages static deployment. The API proxy Worker is temporarily disabled so the deployed app can test whether direct browser requests to the upstream pricing endpoint hit CORS restrictions.
+This project is configured for Cloudflare Pages with a small Pages Function proxy at `/api/proxy/*`. The browser first tries the upstream pricing API directly, then falls back to the same-origin proxy when CORS or upstream browser protections block the direct request.
 
 Sign in to Wrangler once:
 
@@ -62,8 +63,8 @@ For the Cloudflare Pages dashboard, use:
 - Build command: `npm run build`
 - Build output directory: `dist`
 
-The Worker proxy file at [`worker/index.ts`](./worker/index.ts) and the Worker settings in [`wrangler.toml`](./wrangler.toml) are commented out for now.
-The active Wrangler config only points Pages at `dist`.
+The legacy Worker proxy file at [`worker/index.ts`](./worker/index.ts) remains commented out. The active proxy lives under [`functions/api/proxy/[[path]].ts`](./functions/api/proxy/[[path]].ts).
+The Pages Function invocation routes are limited by [`public/_routes.json`](./public/_routes.json), which is copied into `dist` during Vite builds.
 The `deploy:pages` script sets `CLOUDFLARE_ACCOUNT_ID` for the Linus Cloudflare account so Wrangler can run non-interactively.
 
 ## Project Structure
@@ -78,6 +79,8 @@ src/
   utils/           Price and currency helpers
 worker/
   index.ts         Disabled Cloudflare Worker proxy
+functions/
+  api/proxy/       Cloudflare Pages Function proxy
 ```
 
 ## Notes
