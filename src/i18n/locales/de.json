@@ -6,7 +6,9 @@
   "columns": {
     "rank": "#",
     "country": "Land",
-    "currency": "Wahrung"
+    "currency": "Wahrung",
+    "originalPrice": "Originalpreis",
+    "status": "Status"
   },
   "plans": {
     "free": "Kostenlos",
@@ -20,7 +22,8 @@
   "billing": {
     "label": "Abrechnung",
     "monthly": "Monatlich",
-    "annual": "Jahrlich"
+    "annual": "Jahrlich",
+    "annualShort": "J"
   },
   "ui": {
     "loading": "Preise werden geladen...",
@@ -33,6 +36,12 @@
     "languageLabel": "Sprache",
     "exchangeRateError": "Wechselkurse nicht verfugbar - nur lokale Preise angezeigt",
     "darkMode": "Dunkelmodus",
-    "lightMode": "Hellmodus"
+    "lightMode": "Hellmodus",
+    "lowest": "Günstigste"
+  },
+  "sidebar": {
+    "lowestPrice": "Günstigster Preis",
+    "savingsVsHighest": "{{pct}}% günstiger als der höchste",
+    "priceDistribution": "Preisverteilung"
   }
 }

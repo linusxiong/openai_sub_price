@@ -6,7 +6,9 @@
   "columns": {
     "rank": "#",
     "country": "国家",
-    "currency": "货币"
+    "currency": "货币",
+    "originalPrice": "原价",
+    "status": "状态"
   },
   "plans": {
     "free": "免费",
@@ -20,7 +22,8 @@
   "billing": {
     "label": "计费周期",
     "monthly": "月付",
-    "annual": "年付"
+    "annual": "年付",
+    "annualShort": "年"
   },
   "ui": {
     "loading": "正在加载价格...",
@@ -33,6 +36,12 @@
     "languageLabel": "语言",
     "exchangeRateError": "汇率不可用 - 仅显示当地价格",
     "darkMode": "深色模式",
-    "lightMode": "浅色模式"
+    "lightMode": "浅色模式",
+    "lowest": "最低"
+  },
+  "sidebar": {
+    "lowestPrice": "最低价格",
+    "savingsVsHighest": "比最高价省 {{pct}}%",
+    "priceDistribution": "价格分布"
   }
 }

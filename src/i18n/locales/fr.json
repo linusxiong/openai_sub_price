@@ -6,7 +6,9 @@
   "columns": {
     "rank": "#",
     "country": "Pays",
-    "currency": "Devise"
+    "currency": "Devise",
+    "originalPrice": "Prix original",
+    "status": "Statut"
   },
   "plans": {
     "free": "Gratuit",
@@ -20,7 +22,8 @@
   "billing": {
     "label": "Facturation",
     "monthly": "Mensuel",
-    "annual": "Annuel"
+    "annual": "Annuel",
+    "annualShort": "an"
   },
   "ui": {
     "loading": "Chargement des prix...",
@@ -33,6 +36,12 @@
     "languageLabel": "Langue",
     "exchangeRateError": "Taux de change indisponibles - affichage des prix locaux uniquement",
     "darkMode": "Mode sombre",
-    "lightMode": "Mode clair"
+    "lightMode": "Mode clair",
+    "lowest": "Le moins cher"
+  },
+  "sidebar": {
+    "lowestPrice": "Prix le plus bas",
+    "savingsVsHighest": "{{pct}}% moins cher que le plus élevé",
+    "priceDistribution": "Distribution des prix"
   }
 }

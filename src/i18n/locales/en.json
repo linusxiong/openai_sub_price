@@ -6,7 +6,9 @@
   "columns": {
     "rank": "#",
     "country": "Country",
-    "currency": "Currency"
+    "currency": "Currency",
+    "originalPrice": "Original",
+    "status": "Status"
   },
   "plans": {
     "free": "Free",
@@ -20,7 +22,8 @@
   "billing": {
     "label": "Billing",
     "monthly": "Monthly",
-    "annual": "Annual"
+    "annual": "Annual",
+    "annualShort": "yr"
   },
   "ui": {
     "loading": "Loading prices...",
@@ -33,6 +36,12 @@
     "languageLabel": "Language",
     "exchangeRateError": "Exchange rates unavailable - showing local prices only",
     "darkMode": "Dark mode",
-    "lightMode": "Light mode"
+    "lightMode": "Light mode",
+    "lowest": "Lowest"
+  },
+  "sidebar": {
+    "lowestPrice": "Lowest Price",
+    "savingsVsHighest": "{{pct}}% cheaper than highest",
+    "priceDistribution": "Price Distribution"
   }
 }
