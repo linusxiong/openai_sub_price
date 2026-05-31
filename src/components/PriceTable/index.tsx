@@ -74,9 +74,16 @@ export function PriceTable({
         { originalAmount: number | null; convertedAmount: number | null }
       >;
 
+      let name = cc;
+      try {
+        name = countryNames?.of(cc) ?? cc;
+      } catch {
+        // Non-standard codes like "US2", "EU", "XK" throw RangeError
+      }
+
       return {
         countryCode: cc,
-        countryName: countryNames?.of(cc) ?? cc,
+        countryName: name,
         flag: getCountryFlag(cc),
         currencyCode: localCurrency,
         currencySymbol: currency_config.symbol,
