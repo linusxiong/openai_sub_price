@@ -2,7 +2,7 @@
 
 [English README](./README.md)
 
-一个用于比较 ChatGPT 订阅在不同国家和地区价格的 React 应用。应用会从 OpenAI 的价格配置接口读取国家/地区定价，将价格转换为用户选择的显示货币，并按价格排序展示。
+一个用于比较 ChatGPT 订阅在不同国家和地区价格的 React 应用。应用会通过自托管 TypeScript 后端读取价格配置，将价格转换为用户选择的显示货币，并按价格排序展示。
 
 ## 功能
 
@@ -11,9 +11,9 @@
 - 按换算价格升序或降序排序
 - 复制国家/地区代码和货币代码，例如 `US USD`
 - 通过全局刷新按钮重新请求最新后端数据
-- 通过同源 Cloudflare Pages Function 代理价格 API 请求
-- 代理路径已接入 Cloudflare Browser Run
+- 通过同源 TypeScript 后端代理价格 API 请求
 - 多语言、深色模式和本地偏好保存
+- 使用 HeroUI v3 和 Tailwind CSS v4 构建响应式界面
 
 ## 技术栈
 
@@ -23,16 +23,45 @@
 - HeroUI v3
 - Tailwind CSS v4
 - Zustand
-- Cloudflare Pages
+- Node.js TypeScript 后端
 
 ## 本地开发
 
+安装依赖：
+
 ```bash
 npm install
+```
+
+启动后端 API 和静态文件服务：
+
+```bash
+npm run dev:server
+```
+
+另开一个终端启动 Vite：
+
+```bash
 npm run dev
 ```
 
-打开 Vite 输出的本地地址。默认通常是 `http://127.0.0.1:5173/`。
+打开 Vite 输出的本地地址。默认通常是 `http://127.0.0.1:5173/`。开发环境下，Vite 会把 `/api/*` 请求代理到 `http://127.0.0.1:8787`。
+
+## 生产部署
+
+构建前端和后端：
+
+```bash
+npm run build
+```
+
+启动自托管服务：
+
+```bash
+PORT=8787 npm start
+```
+
+生产服务会从 `dist/` 提供构建后的 React 应用，并在 `/api/proxy/*` 处理价格 API 代理请求。域名、TLS 和进程守护可以用你服务器上常用的方案放在 Node 服务前面，例如 Nginx、Caddy、systemd、PM2、Docker 或平台服务。
 
 ## 验证
 
@@ -42,29 +71,21 @@ npm run lint
 npm run build
 ```
 
-## Cloudflare 部署
+## 项目结构
 
-当前项目配置为 Cloudflare Pages，并包含一个 `/api/proxy/*` Pages Function 代理。浏览器会先尝试直连上游价格接口；如果失败，会回退到同源代理。
-
-代理当前通过 `@cloudflare/puppeteer` 和 `BROWSER` binding 使用 Cloudflare Browser Run。Browser Run 可以解决浏览器 CORS 限制，但上游 `chatgpt.com` 仍可能拦截 Cloudflare 出口并返回反滥用页面，而不是 JSON。
-
-部署前请先登录 Wrangler：
-
-```bash
-npx wrangler login
+```text
+src/
+  components/      React UI 组件
+  hooks/           价格和汇率 hooks
+  i18n/            多语言文案
+  services/        价格和汇率客户端
+  store/           本地持久化偏好
+  utils/           价格和货币工具函数
+server/
+  index.ts         自托管 Node 服务
+  proxy.ts         价格 API 代理处理器
 ```
 
-然后构建并部署：
+## 说明
 
-```bash
-npm run deploy:pages
-```
-
-如果在 Cloudflare Pages 控制台配置项目，请使用：
-
-- 构建命令：`npm run build`
-- 构建输出目录：`dist`
-
-旧的 `worker/index.ts` Worker 代理仍保持注释。当前生效的 Browser Run 代理位于 `functions/api/proxy/[[path]].ts`。
-Pages Function 的调用范围由 `public/_routes.json` 限制，Vite 构建时会复制到 `dist`。
-`deploy:pages` 脚本会为 Linus 的 Cloudflare 账号设置 `CLOUDFLARE_ACCOUNT_ID`，便于 Wrangler 在非交互模式下部署。
+应用会使用浏览器会话缓存，避免在短时间内反复请求所有国家/地区的配置。可以使用页面顶部的刷新按钮清空缓存，并从后端重新请求最新价格数据。

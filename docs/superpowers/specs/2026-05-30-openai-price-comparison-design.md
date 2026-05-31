@@ -44,7 +44,7 @@ A real-time price comparison website that fetches ChatGPT subscription pricing f
 | Country list | `https://chatgpt.com/backend-api/checkout_pricing_config/countries` |
 | Per-country config | `https://chatgpt.com/backend-api/checkout_pricing_config/configs/{CC}` |
 
-Both endpoints are public (no auth required) but are protected by Cloudflare's bot challenge. A real browser passes the challenge automatically; `curl` and server-side fetches are blocked.
+Both endpoints are public (no auth required) but may be protected by upstream anti-abuse checks. Direct browser requests can still be blocked by CORS, so the current implementation uses a self-hosted same-origin TypeScript proxy.
 
 **Country config response shape (AU example):**
 ```json
@@ -137,20 +137,17 @@ Where `rates` is the inner object keyed by the user's display currency.
                            │ fetch
                 ┌──────────┴──────────┐
                 │                     │
-         Direct browser          CF Worker proxy
-         fetch (primary)         /api/proxy/...
-                │                     │
-                └──────────┬──────────┘
-                           │
+                 Same-origin TypeScript backend
+                            /api/proxy/...
+                                  │
               chatgpt.com/backend-api/...
               cdn.jsdelivr.net/...
 ```
 
-### 3.1 CORS Strategy (three-tier)
+### 3.1 CORS Strategy
 
-1. **Direct browser fetch** — attempted first. The browser handles any Cloudflare challenge automatically. This is the primary and most reliable path.
-2. **Cloudflare Worker proxy** (`/api/proxy/...`) — fallback if the browser fetch is blocked by CORS headers. The Worker injects `Access-Control-Allow-Origin: *` on the response. If the Worker's server-side fetch to `chatgpt.com` is blocked by a Cloudflare challenge, the [obscura](https://github.com/h4ckf0r0day/obscura) library will be used to solve it. This is treated as a contingency — do not integrate obscura unless the challenge is actually encountered during implementation.
-3. **Static JSON fallback** — a GitHub Actions workflow runs daily using Playwright (headless Chromium) to fetch all country configs and commit them to `public/data/fallback/`. If both live sources fail, the app loads this snapshot with a "prices may be outdated" banner. If Playwright also encounters a challenge, obscura is the fallback there too.
+1. **Same-origin TypeScript proxy** (`/api/proxy/...`) — the browser calls the app's own backend, and the backend forwards pricing requests to `chatgpt.com/backend-api/checkout_pricing_config`.
+2. **Static JSON fallback** — a future daily snapshot job can fetch country configs and write them to `public/data/fallback/`. If live pricing fails, the app can load this snapshot with a "prices may be outdated" banner.
 
 ### 3.2 Data Fetching Strategy
 
@@ -238,8 +235,9 @@ openai-sub-price/
 │   │   └── plans.ts                 # PLAN_ORDER, PLAN_LABEL_KEYS, ANNUAL_PLANS, getPlanAmount (pre-tax)
 │   ├── App.tsx                      # QueryClientProvider, layout: header + main (table + sidebar)
 │   └── main.tsx                     # Entry point, i18n init
-├── worker/
-│   └── index.ts                     # Cloudflare Worker CORS proxy
+├── server/
+│   ├── index.ts                     # Self-hosted Node server
+│   └── proxy.ts                     # Pricing API proxy handler
 ├── public/
 │   └── data/
 │       └── fallback/                # Static JSON snapshots (GitHub Actions)
@@ -249,7 +247,6 @@ openai-sub-price/
 ├── .github/
 │   └── workflows/
 │       └── fetch-prices.yml         # Daily snapshot job (Playwright)
-├── wrangler.toml                    # Cloudflare Worker config
 ├── vite.config.ts                   # @tailwindcss/vite plugin
 ├── tsconfig.json
 └── package.json
@@ -400,27 +397,21 @@ Country names use `Intl.DisplayNames` with the active locale — not in translat
 
 ---
 
-## 10. Cloudflare Worker (CORS Proxy)
+## 10. Self-hosted TypeScript Backend
 
-**Route:** `https://<pages-domain>/api/proxy/*`
+**Route:** `https://<your-domain>/api/proxy/*`
 
 **Behavior:**
 1. Strip `/api/proxy` prefix from the incoming path
 2. Forward to `https://chatgpt.com/backend-api/checkout_pricing_config{path}`
 3. Add browser-like `User-Agent` and `Accept` headers to the upstream request
 4. Return the upstream response with `Access-Control-Allow-Origin: *` injected
-5. Cache successful responses in the CF Cache API for 5 minutes
+5. Cache successful responses for 5 minutes with standard HTTP cache headers
 
-**wrangler.toml** (deployment-time values filled in when the Cloudflare Pages project is created):
-```toml
-name = "openai-price-proxy"
-main = "worker/index.ts"
-compatibility_date = "2025-01-01"
-
-# Replace <pages-domain> and <zone> with actual values after Pages project creation
-[[routes]]
-pattern = "<pages-domain>/api/proxy/*"
-zone_name = "<zone>"
+**Production commands:**
+```bash
+npm run build
+PORT=8787 npm start
 ```
 
 ---
@@ -447,7 +438,7 @@ jobs:
           git push
 ```
 
-The snapshot script uses Playwright (headless Chromium) to bypass the Cloudflare JS challenge, fetches all country configs, and writes them to `public/data/fallback/{CC}.json`.
+The snapshot script can use Playwright (headless Chromium) to fetch all country configs and write them to `public/data/fallback/{CC}.json`.
 
 ---
 
@@ -455,8 +446,7 @@ The snapshot script uses Playwright (headless Chromium) to bypass the Cloudflare
 
 | Scenario | Behavior |
 |---|---|
-| Direct fetch CORS blocked | Silently retry via CF Worker proxy |
-| CF Worker also fails | Load static fallback JSON, show "prices may be outdated" banner |
+| Backend proxy fetch fails | Load static fallback JSON, show "prices may be outdated" banner |
 | Static fallback missing | Show full error state with retry button |
 | Exchange rate fetch fails | Show prices in original currency only, warn user |
 | Single country config fails | Show that country's row as "N/A", continue loading others |
@@ -467,10 +457,9 @@ The snapshot script uses Playwright (headless Chromium) to bypass the Cloudflare
 
 ## 13. Deployment
 
-- **Hosting:** Cloudflare Pages (static SPA)
-- **Worker:** Cloudflare Worker bound to the Pages project
+- **Hosting:** Self-hosted Node.js service
 - **Build command:** `npm run build`
-- **Output directory:** `dist`
+- **Start command:** `PORT=8787 npm start`
 - **Environment variables:** none required for production
 
 ---
