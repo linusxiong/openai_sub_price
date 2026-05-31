@@ -18,22 +18,22 @@ export default function App() {
     <div className="min-h-[100dvh] flex flex-col">
       <Header />
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
-        {isLoading && !hasData && (
-          <>
-            <LoadingProgress
-              completed={progress.completed}
-              total={progress.total}
-            />
-            <SkeletonTable />
-          </>
-        )}
+        {isLoading && !hasData && <SkeletonTable />}
         {isError && !hasData && <ErrorState onRetry={refetch} />}
         {hasData && (
-          <PriceTable
-            configs={configs}
-            exchangeRates={exchangeRates.data}
-            exchangeRateError={exchangeRates.isError}
-          />
+          <>
+            {isLoading && (
+              <LoadingProgress
+                completed={progress.completed}
+                total={progress.total}
+              />
+            )}
+            <PriceTable
+              configs={configs}
+              exchangeRates={exchangeRates.data}
+              exchangeRateError={exchangeRates.isError}
+            />
+          </>
         )}
       </main>
     </div>
