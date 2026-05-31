@@ -1,5 +1,6 @@
 const UPSTREAM_BASE =
   "https://chatgpt.com/backend-api/checkout_pricing_config";
+const ONE_DAY_MS = 24 * 60 * 60 * 1_000;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -9,14 +10,41 @@ const CORS_HEADERS = {
 
 type FetchLike = typeof fetch;
 
+type CacheEntry = {
+  body: string;
+  cachedAt: number;
+  contentType: string;
+  status: number;
+};
+
+type ProxyOptions = {
+  cache?: Map<string, CacheEntry>;
+  now?: () => number;
+};
+
+const pricingCache = new Map<string, CacheEntry>();
+
 function getProxyPath(request: Request) {
   const url = new URL(request.url);
-  return url.pathname.replace(/^\/api\/proxy/, "");
+  return `${url.pathname.replace(/^\/api\/proxy/, "")}${url.search}`;
+}
+
+function createProxyResponse(entry: CacheEntry, cacheStatus: "HIT" | "MISS") {
+  return new Response(entry.body, {
+    status: entry.status,
+    headers: {
+      ...CORS_HEADERS,
+      "Content-Type": entry.contentType,
+      "Cache-Control": `public, max-age=${ONE_DAY_MS / 1_000}`,
+      "X-Cache": cacheStatus,
+    },
+  });
 }
 
 export async function handleApiProxyRequest(
   request: Request,
-  fetchPricing: FetchLike = fetch
+  fetchPricing: FetchLike = fetch,
+  options: ProxyOptions = {}
 ) {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -43,6 +71,14 @@ export async function handleApiProxyRequest(
     );
   }
 
+  const cache = options.cache ?? pricingCache;
+  const now = options.now ?? Date.now;
+  const cached = cache.get(path);
+
+  if (cached && now() - cached.cachedAt < ONE_DAY_MS) {
+    return createProxyResponse(cached, "HIT");
+  }
+
   try {
     const upstream = await fetchPricing(`${UPSTREAM_BASE}${path}`, {
       headers: new Headers({
@@ -53,15 +89,18 @@ export async function handleApiProxyRequest(
       }),
     });
     const body = await upstream.text();
-
-    return new Response(body, {
+    const entry = {
+      body,
+      cachedAt: now(),
+      contentType: upstream.headers.get("Content-Type") ?? "application/json",
       status: upstream.status,
-      headers: {
-        ...CORS_HEADERS,
-        "Content-Type": upstream.headers.get("Content-Type") ?? "application/json",
-        "Cache-Control": "public, max-age=300",
-      },
-    });
+    };
+
+    if (upstream.ok) {
+      cache.set(path, entry);
+    }
+
+    return createProxyResponse(entry, "MISS");
   } catch {
     return Response.json(
       { error: "Upstream fetch failed" },

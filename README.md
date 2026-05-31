@@ -12,6 +12,7 @@ A React app for comparing ChatGPT subscription prices across supported countries
 - Copy both the two-letter country/region code and three-letter currency code, such as `US USD`
 - Refresh pricing data from the backend with a global refresh button
 - Same-origin TypeScript backend proxy for pricing API requests
+- One-day backend cache for upstream pricing responses
 - Persist language, theme, currency, plan, billing, and sorting preferences locally
 - Responsive UI built with HeroUI v3 and Tailwind CSS v4
 
@@ -63,6 +64,53 @@ PORT=8787 npm start
 
 The production server serves the built React app from `dist/` and handles pricing API requests at `/api/proxy/*`. Put your domain, TLS, and process management in front of this Node service with your usual server stack, such as Nginx, Caddy, systemd, PM2, Docker, or a platform service.
 
+The backend caches successful upstream pricing responses in memory for one day. Every frontend request checks this backend cache first; after the entry expires, the next request refreshes it from the upstream API.
+
+## Docker
+
+Build the runtime image:
+
+```bash
+docker build -t openai-sub-price .
+```
+
+Run the container:
+
+```bash
+docker run --rm -p 8787:8787 openai-sub-price
+```
+
+The Docker image is built with a multi-stage Dockerfile. The final image only contains Node.js, the compiled backend in `dist-server/`, and the built frontend in `dist/`.
+
+## Docker Compose
+
+Use [`docker-compose.example.yml`](./docker-compose.example.yml) as a starting point for server deployment:
+
+```bash
+docker compose -f docker-compose.example.yml up -d
+```
+
+The example pulls `ghcr.io/linusxiong/openai_sub_price:latest` and exposes the app on port `8787`.
+
+## GitHub Actions Container Publishing
+
+The repository includes a manual GitHub Actions workflow at [`.github/workflows/docker-image.yml`](./.github/workflows/docker-image.yml). It builds the Docker image and publishes it to GitHub Container Registry.
+
+To publish a container manually:
+
+1. Open the repository on GitHub.
+2. Go to **Actions**.
+3. Select **Build Docker Image**.
+4. Click **Run workflow**.
+5. Enter the image tag, such as `latest` or `2026-05-31`.
+
+Published tags:
+
+- `ghcr.io/linusxiong/openai_sub_price:<image_tag>`
+- `ghcr.io/linusxiong/openai_sub_price:<commit_sha>`
+
+After the image is published, deploy it manually on your server with Docker Compose or your preferred container runtime.
+
 ## Verification
 
 ```bash
@@ -84,8 +132,10 @@ src/
 server/
   index.ts         Self-hosted Node server
   proxy.ts         Pricing API proxy handler
+docker-compose.example.yml
+                  Example Docker Compose deployment
 ```
 
 ## Notes
 
-The app uses the browser session cache to avoid repeatedly fetching every country configuration during short sessions. Use the refresh button in the header to clear that cache and request fresh pricing data from the backend.
+The app uses the browser session cache to avoid repeatedly fetching every country configuration during short sessions. Use the refresh button in the header to clear that browser cache and request data from the backend. The backend may still return its one-day cached response until the server-side cache entry expires.

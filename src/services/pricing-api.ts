@@ -1,35 +1,24 @@
 import type { CountriesResponse, CountryConfig } from "../types/pricing";
 
-const DIRECT_BASE = "https://chatgpt.com/backend-api/checkout_pricing_config";
 const PROXY_BASE = "/api/proxy";
 
-async function fetchWithFallback<T>(path: string): Promise<T> {
-  try {
-    const res = await fetch(`${DIRECT_BASE}${path}`, {
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) throw new Error("Not JSON");
-    return res.json() as Promise<T>;
-  } catch {
-    const res = await fetch(`${PROXY_BASE}${path}`, {
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
-    return res.json() as Promise<T>;
-  }
+async function fetchFromBackend<T>(path: string): Promise<T> {
+  const res = await fetch(`${PROXY_BASE}${path}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
+  return res.json() as Promise<T>;
 }
 
 export async function fetchCountries(): Promise<string[]> {
-  const data = await fetchWithFallback<CountriesResponse>("/countries");
+  const data = await fetchFromBackend<CountriesResponse>("/countries");
   return data.countries;
 }
 
 export async function fetchCountryConfig(
   countryCode: string
 ): Promise<CountryConfig> {
-  return fetchWithFallback<CountryConfig>(`/configs/${countryCode}`);
+  return fetchFromBackend<CountryConfig>(`/configs/${countryCode}`);
 }
 
 export async function fetchAllConfigs(

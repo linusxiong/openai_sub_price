@@ -13,6 +13,10 @@ dist-server/
 !.env.example
 *.local
 
+# Local Docker Compose overrides
+docker-compose.override.yml
+compose.override.yml
+
 # Logs
 logs/
 *.log

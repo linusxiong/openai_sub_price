@@ -25,7 +25,7 @@ A real-time price comparison website that fetches ChatGPT subscription pricing f
 
 **Success criteria:**
 - One plan at a time shown in the table, selected via plan tabs
-- Prices update on every page load (real-time), with sessionStorage cache (10 min TTL) for instant repeat visits
+- Prices are requested through the backend, which serves successful upstream responses from a one-day in-memory cache
 - Streaming load: table renders as first batch of 20 countries arrives; sort updates incrementally
 - Sidebar shows lowest price highlight and price distribution bar chart for the active plan
 - User's display currency, language, active plan, billing interval, and sort preferences persist across sessions
@@ -147,7 +147,8 @@ Where `rates` is the inner object keyed by the user's display currency.
 ### 3.1 CORS Strategy
 
 1. **Same-origin TypeScript proxy** (`/api/proxy/...`) — the browser calls the app's own backend, and the backend forwards pricing requests to `chatgpt.com/backend-api/checkout_pricing_config`.
-2. **Static JSON fallback** — a future daily snapshot job can fetch country configs and write them to `public/data/fallback/`. If live pricing fails, the app can load this snapshot with a "prices may be outdated" banner.
+2. **One-day backend cache** — successful upstream responses are cached by proxied path for 24 hours. Every frontend request checks this cache first; expired entries are refreshed by the next request.
+3. **Static JSON fallback** — a future daily snapshot job can fetch country configs and write them to `public/data/fallback/`. If live pricing fails, the app can load this snapshot with a "prices may be outdated" banner.
 
 ### 3.2 Data Fetching Strategy
 
@@ -155,7 +156,8 @@ Where `rates` is the inner object keyed by the user's display currency.
 - Batch-fetch all country configs in groups of 20 concurrent requests.
 - **Streaming:** update the table after each batch completes — do not wait for all 230+ countries. Sort updates incrementally as data arrives.
 - Show a progress bar (`Fetching N of 230 countries`) above the table during streaming.
-- Cache completed data in `sessionStorage` with a 10-minute TTL. On page load, if cache is fresh, render instantly with no network requests.
+- Cache completed data in `sessionStorage` with a 10-minute TTL. On page load, if browser cache is fresh, render instantly with no network requests.
+- Backend proxy responses are cached in memory for 24 hours, so browser refreshes do not necessarily trigger upstream requests.
 - Exchange rates are fetched via TanStack Query with `staleTime: 1 hour`.
 
 ### 3.3 Flash Prevention
@@ -240,13 +242,15 @@ openai-sub-price/
 │   └── proxy.ts                     # Pricing API proxy handler
 ├── public/
 │   └── data/
-│       └── fallback/                # Static JSON snapshots (GitHub Actions)
+│       └── fallback/                # Optional static JSON snapshots
 ├── docs/
 │   └── superpowers/specs/
 │       └── 2026-05-30-openai-price-comparison-design.md
 ├── .github/
 │   └── workflows/
-│       └── fetch-prices.yml         # Daily snapshot job (Playwright)
+│       └── docker-image.yml         # Manual GHCR image publishing
+├── Dockerfile                       # Multi-stage production container
+├── docker-compose.example.yml       # Example server deployment
 ├── vite.config.ts                   # @tailwindcss/vite plugin
 ├── tsconfig.json
 └── package.json
@@ -406,7 +410,8 @@ Country names use `Intl.DisplayNames` with the active locale — not in translat
 2. Forward to `https://chatgpt.com/backend-api/checkout_pricing_config{path}`
 3. Add browser-like `User-Agent` and `Accept` headers to the upstream request
 4. Return the upstream response with `Access-Control-Allow-Origin: *` injected
-5. Cache successful responses for 5 minutes with standard HTTP cache headers
+5. Cache successful upstream responses in memory for 24 hours, keyed by proxied path
+6. Return `X-Cache: HIT` for cached responses and `X-Cache: MISS` for refreshed upstream responses
 
 **Production commands:**
 ```bash
@@ -414,31 +419,41 @@ npm run build
 PORT=8787 npm start
 ```
 
----
-
-## 11. GitHub Actions — Daily Snapshot
-
-```yaml
-on:
-  schedule:
-    - cron: "0 2 * * *"
-  workflow_dispatch:
-
-jobs:
-  snapshot:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: node scripts/fetch-snapshot.js
-      - run: |
-          git config user.email "bot@github.com"
-          git config user.name "Price Bot"
-          git add public/data/fallback/
-          git diff --staged --quiet || git commit -m "chore: daily price snapshot"
-          git push
+**Docker commands:**
+```bash
+docker build -t openai-sub-price .
+docker run --rm -p 8787:8787 openai-sub-price
 ```
 
-The snapshot script can use Playwright (headless Chromium) to fetch all country configs and write them to `public/data/fallback/{CC}.json`.
+---
+
+## 11. GitHub Actions — Manual Container Publishing
+
+```yaml
+name: Build Docker Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        required: true
+        default: "latest"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+      - uses: docker/build-push-action@v6
+```
+
+The workflow is manually triggered from GitHub Actions. It publishes the requested tag and the immutable commit SHA tag to GitHub Container Registry, then deployment is performed manually from the server.
 
 ---
 
@@ -460,6 +475,9 @@ The snapshot script can use Playwright (headless Chromium) to fetch all country 
 - **Hosting:** Self-hosted Node.js service
 - **Build command:** `npm run build`
 - **Start command:** `PORT=8787 npm start`
+- **Container:** `Dockerfile` builds a multi-stage runtime image with only `dist/`, `dist-server/`, and Node.js
+- **GitHub Actions:** `.github/workflows/docker-image.yml` manually publishes `ghcr.io/linusxiong/openai_sub_price:<tag>`
+- **Compose:** `docker-compose.example.yml` shows a server deployment using the published GHCR image
 - **Environment variables:** none required for production
 
 ---

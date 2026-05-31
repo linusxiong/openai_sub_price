@@ -1,0 +1,10 @@
+services:
+  openai-sub-price:
+    image: ghcr.io/linusxiong/openai_sub_price:latest
+    container_name: openai-sub-price
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      NODE_ENV: production
+      PORT: "8787"
