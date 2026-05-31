@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useState, useEffect } from "react";
 
 export type BillingInterval = "month" | "year";
 export type SortDirection = "ascending" | "descending";
@@ -38,3 +39,13 @@ export const usePreferences = create<PreferencesStore>()(
     { name: "openai-price-preferences" }
   )
 );
+
+export function useHydrated() {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    const unsub = usePreferences.persist.onFinishHydration(() => setHydrated(true));
+    if (usePreferences.persist.hasHydrated()) setHydrated(true);
+    return unsub;
+  }, []);
+  return hydrated;
+}
