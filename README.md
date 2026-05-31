@@ -12,6 +12,7 @@ A React app for comparing ChatGPT subscription prices across supported countries
 - Copy both the two-letter country/region code and three-letter currency code, such as `US USD`
 - Refresh pricing data from the backend with a global refresh button
 - Same-origin Cloudflare Pages Function proxy for pricing API requests
+- Cloudflare Browser Run integration for the proxy path
 - Persist language, theme, currency, plan, billing, and sorting preferences locally
 - Responsive UI built with HeroUI v3 and Tailwind CSS v4
 
@@ -44,7 +45,9 @@ npm run build
 
 ## Deployment
 
-This project is configured for Cloudflare Pages with a small Pages Function proxy at `/api/proxy/*`. The browser first tries the upstream pricing API directly, then falls back to the same-origin proxy when CORS or upstream browser protections block the direct request.
+This project is configured for Cloudflare Pages with a small Pages Function proxy at `/api/proxy/*`. The browser first tries the upstream pricing API directly, then falls back to the same-origin proxy.
+
+The proxy currently uses Cloudflare Browser Run through `@cloudflare/puppeteer` and the `BROWSER` binding. Browser Run removes the browser CORS limitation, but the upstream `chatgpt.com` endpoint may still block Cloudflare egress and return an anti-abuse page instead of JSON.
 
 Sign in to Wrangler once:
 
@@ -63,7 +66,7 @@ For the Cloudflare Pages dashboard, use:
 - Build command: `npm run build`
 - Build output directory: `dist`
 
-The legacy Worker proxy file at [`worker/index.ts`](./worker/index.ts) remains commented out. The active proxy lives under [`functions/api/proxy/[[path]].ts`](./functions/api/proxy/[[path]].ts).
+The legacy Worker proxy file at [`worker/index.ts`](./worker/index.ts) remains commented out. The active Browser Run proxy lives under [`functions/api/proxy/[[path]].ts`](./functions/api/proxy/[[path]].ts).
 The Pages Function invocation routes are limited by [`public/_routes.json`](./public/_routes.json), which is copied into `dist` during Vite builds.
 The `deploy:pages` script sets `CLOUDFLARE_ACCOUNT_ID` for the Linus Cloudflare account so Wrangler can run non-interactively.
 
