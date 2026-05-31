@@ -1,13 +1,14 @@
 # OpenAI Subscription Price Comparison — Design Spec
 
 **Date:** 2026-05-30
+**Last updated:** 2026-05-31
 **Status:** Approved for implementation
 
 ---
 
 ## Design Read (taste-skill §0.B)
 
-> "Reading this as: data utility tool for price-conscious consumers and developers, with a clean/functional language, leaning toward HeroUI + Tailwind v3 + Geist + restrained motion."
+> "Reading this as: data utility tool for price-conscious consumers and developers, with a clean/functional language, leaning toward HeroUI v3 + Tailwind v4 + Geist + restrained motion."
 
 **Dials:**
 - `DESIGN_VARIANCE: 5` — clean, functional, no asymmetric chaos
@@ -20,13 +21,16 @@ Note: the design-taste-frontend skill explicitly excludes data tables from its s
 
 ## 1. Overview
 
-A real-time price comparison website that fetches ChatGPT subscription pricing for every country OpenAI supports, converts all prices to the user's chosen display currency, and presents them in a sortable, rankable table. The user can also see the original local-currency price alongside the converted price.
+A real-time price comparison website that fetches ChatGPT subscription pricing for every country OpenAI supports, converts all prices to the user's chosen display currency, and presents them in a plan-centric sortable table with a stats sidebar.
 
 **Success criteria:**
-- All countries and all subscription tiers visible in one table
-- Prices update on every page load (real-time)
-- User's display currency and language preferences persist across sessions
+- One plan at a time shown in the table, selected via plan tabs
+- Prices update on every page load (real-time), with sessionStorage cache (10 min TTL) for instant repeat visits
+- Streaming load: table renders as first batch of 20 countries arrives; sort updates incrementally
+- Sidebar shows lowest price highlight and price distribution bar chart for the active plan
+- User's display currency, language, active plan, billing interval, and sort preferences persist across sessions
 - Works in all six target languages: English, Chinese (Simplified), Japanese, German, French, Spanish
+- No sort flash or dark mode flash on page load
 - Graceful degradation when the upstream API is unreachable
 
 ---
@@ -84,7 +88,7 @@ Both endpoints are public (no auth required) but are protected by Cloudflare's b
 
 Plans absent from a country's config are shown as "N/A".
 
-**Price used:** `amount` field (tax-inclusive where available, exclusive otherwise). The `psp_override` field is ignored for display — it reflects payment-processor-specific amounts, not the advertised price.
+**Price used:** Pre-tax amount. When `tax` is `"inclusive"`, divide by `(1 + tax_percent / 100)` to get the pre-tax price. When `tax` is `"exclusive"`, use `amount` directly. The `psp_override` field is ignored.
 
 ### 2.2 Exchange Rate API (fawazahmed0/exchange-api)
 
@@ -113,30 +117,33 @@ Where `rates` is the inner object keyed by the user's display currency.
 ## 3. Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Browser (React SPA)                   │
-│                                                         │
-│  ┌──────────┐   ┌──────────────┐   ┌─────────────────┐ │
-│  │  Header  │   │  PriceTable  │   │  Preferences    │ │
-│  │  (nav,   │   │  (HeroUI +   │   │  (Zustand +     │ │
-│  │  selects)│   │  TanStack)   │   │  localStorage)  │ │
-│  └──────────┘   └──────────────┘   └─────────────────┘ │
-│                                                         │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │              TanStack Query cache                │   │
-│  │   usePricing()          useExchangeRates()       │   │
-│  └──────────────────────────────────────────────────┘   │
-└────────────────────┬────────────────────────────────────┘
-                     │ fetch
-          ┌──────────┴──────────┐
-          │                     │
-   Direct browser          CF Worker proxy
-   fetch (primary)         /api/proxy/...
-          │                     │
-          └──────────┬──────────┘
-                     │
-        chatgpt.com/backend-api/...
-        cdn.jsdelivr.net/...
+┌─────────────────────────────────────────────────────────────────┐
+│                        Browser (React SPA)                       │
+│                                                                  │
+│  ┌──────────┐   ┌──────────────────────────┐  ┌──────────────┐  │
+│  │  Header  │   │  Main Content            │  │  Preferences │  │
+│  │  (nav,   │   │  ┌────────┐ ┌─────────┐  │  │  (Zustand +  │  │
+│  │  selects)│   │  │ Plan   │ │ Stats   │  │  │  localStorage│  │
+│  └──────────┘   │  │ Tabs + │ │ Sidebar │  │  └──────────────┘  │
+│                 │  │ Table  │ │         │  │                     │
+│                 │  └────────┘ └─────────┘  │                     │
+│                 └──────────────────────────┘                     │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │  usePricing() — custom streaming hook + sessionStorage     │  │
+│  │  useExchangeRates() — TanStack Query                       │  │
+│  └────────────────────────────────────────────────────────────┘  │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ fetch
+                ┌──────────┴──────────┐
+                │                     │
+         Direct browser          CF Worker proxy
+         fetch (primary)         /api/proxy/...
+                │                     │
+                └──────────┬──────────┘
+                           │
+              chatgpt.com/backend-api/...
+              cdn.jsdelivr.net/...
 ```
 
 ### 3.1 CORS Strategy (three-tier)
@@ -148,10 +155,18 @@ Where `rates` is the inner object keyed by the user's display currency.
 ### 3.2 Data Fetching Strategy
 
 - Fetch the countries list first (single request).
-- Batch-fetch all country configs in groups of 20 concurrent requests to avoid rate-limiting.
-- Show a progress bar (`fetched N of 230`) during the batch phase.
-- Cache all results in TanStack Query with `staleTime: 5 minutes` so tab switches don't re-fetch.
-- Exchange rates are fetched once per session (staleTime: 1 hour).
+- Batch-fetch all country configs in groups of 20 concurrent requests.
+- **Streaming:** update the table after each batch completes — do not wait for all 230+ countries. Sort updates incrementally as data arrives.
+- Show a progress bar (`Fetching N of 230 countries`) above the table during streaming.
+- Cache completed data in `sessionStorage` with a 10-minute TTL. On page load, if cache is fresh, render instantly with no network requests.
+- Exchange rates are fetched via TanStack Query with `staleTime: 1 hour`.
+
+### 3.3 Flash Prevention
+
+Two inline scripts in `index.html` run before React loads:
+
+1. **Dark mode script** — reads `openai-price-preferences` from localStorage and applies the `dark` class to `<html>` immediately, preventing FOUC.
+2. **Zustand hydration** — `useHydrated()` initializes with `useState(() => usePreferences.persist.hasHydrated())` so the first render already has the correct sort/plan preferences when Zustand hydrates synchronously.
 
 ---
 
@@ -161,14 +176,20 @@ Where `rates` is the inner object keyed by the user's display currency.
 |---|---|---|
 | Build tool | Vite + React + TypeScript | Fast DX, standard for SPAs |
 | UI components | HeroUI v3 | Tailwind-native, accessible, dark-mode built-in |
-| Styling | Tailwind CSS v3 | Required by HeroUI v3 |
-| Table logic | HeroUI Table (sort via `sortDescriptor`) | Integrates with design system; 230 rows needs no virtualization |
-| Data fetching | TanStack Query v5 | Caching, loading/error states, stale-while-revalidate |
-| Global state | Zustand v5 | Currency + language + sort preferences |
+| Styling | **Tailwind CSS v4** | Required by HeroUI v3 styles; configured via `@tailwindcss/vite` plugin, no `tailwind.config.js` |
+| Data fetching | Custom streaming hook + TanStack Query v5 | Streaming for pricing (incremental updates), TanStack Query for exchange rates |
+| Global state | Zustand v5 | Currency, language, active plan, billing interval, sort preferences |
 | i18n | react-i18next + i18next-browser-languagedetector | Auto-detects browser language |
-| Animation | motion/react | Skeleton shimmer, subtle transitions |
 | Icons | @phosphor-icons/react | Consistent stroke weight, no hand-rolled SVGs |
-| Font | Geist (self-hosted via @fontsource/geist) | Not Inter; clean, readable at data density |
+| Font | Geist (via `geist` npm package) | Not Inter; clean, readable at data density |
+
+**Tailwind v4 setup:**
+- Install: `npm install tailwindcss @tailwindcss/vite`
+- `vite.config.ts`: add `tailwindcss()` from `@tailwindcss/vite` to plugins
+- `src/index.css`: `@import "tailwindcss"` (replaces `@tailwind base/components/utilities`)
+- No `tailwind.config.js` — theme config lives in CSS via `@theme { ... }`
+- Dark mode: `@variant dark (&:is(.dark *))`
+- Remove: `tailwindcss@3`, `postcss`, `autoprefixer`, `tailwind.config.js`, `postcss.config.js`
 
 ---
 
@@ -178,39 +199,44 @@ Where `rates` is the inner object keyed by the user's display currency.
 openai-sub-price/
 ├── src/
 │   ├── components/
-│   │   ├── Header.tsx               # Logo, title, language + currency selectors, theme toggle
-│   │   ├── CurrencySelector.tsx     # HeroUI Select, 40+ currencies
-│   │   ├── LanguageSelector.tsx     # HeroUI Select, 6 languages
-│   │   ├── ThemeToggle.tsx          # Dark/light toggle, respects prefers-color-scheme
-│   │   ├── LoadingProgress.tsx      # "Fetching N of 230 countries..." progress bar
+│   │   ├── Header.tsx               # Title, language + currency selectors, theme toggle
+│   │   ├── CurrencySelector.tsx     # Native <select> styled with Tailwind, 40+ currencies
+│   │   ├── LanguageSelector.tsx     # Native <select> styled with Tailwind, 6 languages
+│   │   ├── ThemeToggle.tsx          # HeroUI Button (ghost, isIconOnly), dark/light toggle
+│   │   ├── LoadingProgress.tsx      # HeroUI ProgressBar compound component
+│   │   ├── PlanTabs.tsx             # Plan selector tabs (Free, Go, Plus, Pro Lite, Pro, Team, Non-Profit)
+│   │   ├── PriceSidebar/
+│   │   │   ├── index.tsx            # Sidebar container (lowest price card + distribution chart)
+│   │   │   ├── LowestPriceCard.tsx  # Cheapest country highlight: flag, price, savings % vs highest
+│   │   │   └── PriceDistribution.tsx# Horizontal bar chart: each country as a row, bar = relative price
 │   │   └── PriceTable/
-│   │       ├── index.tsx            # HeroUI Table, sortDescriptor, column definitions
-│   │       ├── PlanCell.tsx         # Converted price (primary) + local price (secondary)
-│   │       ├── SkeletonTable.tsx    # Shimmer skeleton matching final table shape
-│   │       └── ErrorState.tsx       # Error message + retry button
+│   │       ├── index.tsx            # Single-plan table: rank, country, original price, converted price, status
+│   │       ├── StatusBadge.tsx      # "Lowest" badge for rank 1
+│   │       ├── SkeletonTable.tsx    # HeroUI Skeleton shimmer matching final table shape
+│   │       └── ErrorState.tsx       # HeroUI Button (outline) + WarningCircle icon
 │   ├── hooks/
-│   │   ├── usePricing.ts            # TanStack Query: countries list + batched configs
+│   │   ├── usePricing.ts            # Custom streaming hook: sessionStorage cache + batch fetch
 │   │   └── useExchangeRates.ts      # TanStack Query: fawazahmed0 rates
 │   ├── services/
-│   │   ├── pricing-api.ts           # fetchCountries, fetchCountryConfig, fetchAllConfigs
+│   │   ├── pricing-api.ts           # fetchCountries, fetchCountryConfig
 │   │   └── exchange-rates.ts        # fetchExchangeRates (primary + fallback CDN)
 │   ├── store/
-│   │   └── preferences.ts           # Zustand: displayCurrency, language, billingInterval, sortPlan
+│   │   └── preferences.ts           # Zustand: displayCurrency, language, activePlan, billingInterval, sortDirection, theme
 │   ├── i18n/
 │   │   ├── index.ts                 # i18next init, language detector
 │   │   └── locales/
 │   │       ├── en.json
-│   │       ├── zh.json              # Chinese Simplified
+│   │       ├── zh.json
 │   │       ├── ja.json
 │   │       ├── de.json
 │   │       ├── fr.json
 │   │       └── es.json
 │   ├── types/
-│   │   └── pricing.ts               # CountryConfig, CurrencyConfig, PlanConfig, etc.
+│   │   └── pricing.ts               # CountryConfig, CurrencyConfig, PlanConfig, PlanKey, BillingInterval
 │   ├── utils/
-│   │   ├── currency.ts              # convertPrice, formatCurrency
-│   │   └── plans.ts                 # PLAN_ORDER, PLAN_LABELS, getPlanAmount
-│   ├── App.tsx                      # HeroUIProvider, QueryClientProvider, layout
+│   │   ├── currency.ts              # convertPrice, formatCurrency, CURRENCY_OPTIONS
+│   │   └── plans.ts                 # PLAN_ORDER, PLAN_LABEL_KEYS, ANNUAL_PLANS, getPlanAmount (pre-tax)
+│   ├── App.tsx                      # QueryClientProvider, layout: header + main (table + sidebar)
 │   └── main.tsx                     # Entry point, i18n init
 ├── worker/
 │   └── index.ts                     # Cloudflare Worker CORS proxy
@@ -222,51 +248,79 @@ openai-sub-price/
 │       └── 2026-05-30-openai-price-comparison-design.md
 ├── .github/
 │   └── workflows/
-│       └── fetch-prices.yml         # Daily snapshot job
+│       └── fetch-prices.yml         # Daily snapshot job (Playwright)
 ├── wrangler.toml                    # Cloudflare Worker config
-├── tailwind.config.js               # HeroUI plugin, content paths
-├── vite.config.ts
+├── vite.config.ts                   # @tailwindcss/vite plugin
 ├── tsconfig.json
 └── package.json
 ```
 
 ---
 
-## 6. Table Design
+## 6. UI Layout
 
-### 6.1 Columns
-
-| Column | Key | Sortable | Notes |
-|---|---|---|---|
-| Rank | `rank` | No | Auto-calculated from current sort |
-| Country | `country` | Yes | Flag emoji + localized country name (Intl.DisplayNames) |
-| Currency | `currency` | Yes | ISO code, e.g. "AUD" |
-| Free | `free` | Yes | Monthly only (always $0) |
-| Go | `go` | Yes | Monthly only |
-| Plus | `plus` | Yes | Monthly / annual toggle |
-| Pro Lite | `prolite` | Yes | Monthly only |
-| Pro | `pro` | Yes | Monthly only |
-| Team | `business` | Yes | Monthly / annual toggle |
-| Non-Profit | `business_non_profit` | Yes | Monthly / annual toggle |
-
-### 6.2 Plan Cell Layout
+### 6.1 Page Layout
 
 ```
-┌─────────────────┐
-│  $19.74         │  ← converted price in display currency (primary, bold)
-│  A$30.00        │  ← original local price (secondary, muted, smaller)
-└─────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  Header: [Title + tagline]          [Lang] [Currency] [Theme]   │
+├─────────────────────────────────────────────────────────────────┤
+│  Plan Tabs: [Free] [Go] [Plus*] [Pro Lite] [Pro] [Team] [NP]   │
+│             Billing: [Monthly*] [Annual]                        │
+├──────────────────────────────────────┬──────────────────────────┤
+│  Table (flex-1)                      │  Sidebar (fixed 280px)   │
+│  ┌──────────────────────────────┐    │  ┌────────────────────┐  │
+│  │ # | Country | Original | USD │    │  │ Lowest Price Card  │  │
+│  │ 1 | TR  ... | ₺499 TRY | $10 │    │  │ $10.95 - Turkey    │  │
+│  │ 2 | PH  ... | PHP999   | $16 │    │  │ 61% cheaper        │  │
+│  │ ...                          │    │  └────────────────────┘  │
+│  └──────────────────────────────┘    │  ┌────────────────────┐  │
+│  Progress bar (during streaming)     │  │ Price Distribution │  │
+│                                      │  │ TR ████            │  │
+│                                      │  │ PH ██████          │  │
+│                                      │  │ US ████████████    │  │
+│                                      │  └────────────────────┘  │
+└──────────────────────────────────────┴──────────────────────────┘
 ```
 
-For unavailable plans: display "N/A" centered, muted color.
+On mobile (`< 768px`): sidebar collapses below the table.
 
-### 6.3 Billing Interval Toggle
+### 6.2 Plan Tabs
 
-A segmented control in the table header area switches all plan columns between Monthly and Annual simultaneously. Columns that have no annual pricing always show the monthly price regardless.
+Horizontal scrollable tab strip. Each tab shows the plan name. The active tab is highlighted. Selecting a tab updates the table and sidebar for that plan.
 
-### 6.4 Ranking
+### 6.3 Table Columns (single-plan view)
 
-The rank column reflects the current sort order. Sorting by a plan column (ascending = cheapest first) automatically updates ranks 1, 2, 3... Ties share the same rank. Default sort: Plus monthly, ascending.
+| Column | Notes |
+|---|---|
+| Rank (#) | Auto-calculated from sort order |
+| Country | Flag emoji + localized country name (`Intl.DisplayNames`) |
+| Original Price | Pre-tax amount in local currency with ISO code (e.g. `₺499.99 TRY`) |
+| Converted Price | Pre-tax amount in user's display currency (e.g. `$10.95`) |
+| Status | "Lowest" badge on rank 1 row only |
+
+Default sort: converted price ascending (cheapest first). Clicking the converted price column header toggles ascending/descending.
+
+For unavailable plans: show "N/A" in both price columns.
+
+### 6.4 Lowest Price Card (sidebar)
+
+Shows for the active plan:
+- Cheapest country flag + name
+- Price in display currency (large, bold)
+- Savings percentage vs the most expensive country: `X% cheaper than highest`
+
+### 6.5 Price Distribution Chart (sidebar)
+
+Horizontal bar chart for the active plan:
+- One row per country (top 30 by price, ascending)
+- Bar width proportional to converted price relative to the maximum
+- Country code label on the left, price on the right
+- Cheapest bar highlighted in accent color; others in muted zinc
+
+### 6.6 Billing Interval Toggle
+
+Segmented control (Monthly / Annual) shown below the plan tabs. Plans without annual pricing always show monthly regardless of the toggle.
 
 ---
 
@@ -274,20 +328,24 @@ The rank column reflects the current sort order. Sorting by a plan column (ascen
 
 ```typescript
 interface PreferencesStore {
-  displayCurrency: string;        // e.g. "USD" — persisted to localStorage
-  language: string;               // e.g. "en" — persisted to localStorage
-  billingInterval: "month"|"year";// persisted to localStorage
-  sortPlan: string;               // plan key, e.g. "plus" — persisted to localStorage
-  sortDirection: "ascending"|"descending"; // persisted to localStorage
+  displayCurrency: string;              // e.g. "USD"
+  language: string;                     // e.g. "en"
+  activePlan: PlanKey;                  // e.g. "plus" — replaces sortPlan
+  billingInterval: "month" | "year";
+  sortDirection: "ascending" | "descending";
+  theme: "light" | "dark" | "system";
   setDisplayCurrency: (c: string) => void;
   setLanguage: (l: string) => void;
-  setBillingInterval: (i: "month"|"year") => void;
-  setSortPlan: (p: string) => void;
-  setSortDirection: (d: "ascending"|"descending") => void;
+  setActivePlan: (p: PlanKey) => void;
+  setBillingInterval: (i: "month" | "year") => void;
+  setSortDirection: (d: "ascending" | "descending") => void;
+  setTheme: (t: "light" | "dark" | "system") => void;
 }
 ```
 
-All fields are persisted via Zustand's `persist` middleware with `localStorage`.
+All fields persisted via Zustand `persist` middleware with `localStorage`.
+
+`useHydrated()` initializes with `useState(() => usePreferences.persist.hasHydrated())` — synchronous on first render when localStorage is available, preventing sort/plan flash.
 
 ---
 
@@ -299,14 +357,14 @@ All fields are persisted via Zustand's `persist` middleware with `localStorage`.
 
 **Translated strings include:**
 - App title and tagline
-- Column headers
+- Column headers (Rank, Country, Original Price, Converted Price, Status)
 - Plan names
-- UI labels: Loading, Error, Retry, Monthly, Annual, Unavailable (N/A), "prices may be outdated"
-- Currency selector label
-- Language selector label
-- Progress message: "Fetching {n} of {total} countries"
+- UI labels: Loading, Error, Retry, Monthly, Annual, N/A, "prices may be outdated", "Lowest", "cheaper than highest"
+- Currency selector label, Language selector label
+- Progress message: "Fetching {completed} of {total} countries"
+- Sidebar labels: "Lowest Price", "Price Distribution"
 
-Country names are NOT in the translation files — they use `Intl.DisplayNames` with the active locale, which covers all 230+ countries automatically.
+Country names use `Intl.DisplayNames` with the active locale — not in translation files.
 
 ---
 
@@ -315,30 +373,30 @@ Country names are NOT in the translation files — they use `Intl.DisplayNames` 
 ### 9.1 Color
 
 - **Neutrals:** Zinc scale (zinc-950 dark bg, zinc-900 surface, zinc-800 border, zinc-50 light bg)
-- **Accent:** Blue-500 (`#3B82F6`) — sort indicators, active states, links
-- **Success/cheap:** No color coding by default (avoids misleading relative comparisons)
-- **Unavailable:** zinc-500 muted text
+- **Accent:** HeroUI accent token (maps to blue in default theme) — sort indicators, active tabs, lowest price bar
+- **Lowest badge:** green (success color)
+- **Unavailable:** zinc-400/500 muted text
 
 ### 9.2 Typography
 
-- **Font:** Geist (self-hosted via `@fontsource/geist`)
+- **Font:** Geist (via `geist` npm package, imported in CSS)
 - **Numbers in table:** `font-mono` for alignment
 - **Body:** `text-sm` at VISUAL_DENSITY 7
 - **No Inter as default** (taste-skill §4.1)
 
 ### 9.3 Dark Mode
 
-- Default: respects `prefers-color-scheme`
-- Manual toggle available in header
-- HeroUI `dark` class on `<html>` element
-- Both modes tested before ship
+- Default: respects `prefers-color-scheme` via inline script in `index.html`
+- Manual toggle in header
+- `dark` class on `<html>` element
+- Inline script prevents FOUC: reads `openai-price-preferences` from localStorage before React loads
 
 ### 9.4 Accessibility
 
 - WCAG AA contrast on all text
-- Keyboard-navigable table (HeroUI Table handles this)
+- Keyboard-navigable table and tabs
 - `aria-label` on all interactive controls
-- `prefers-reduced-motion` respected — skeleton shimmer disabled, no transitions
+- `prefers-reduced-motion` respected — skeleton shimmer disabled
 
 ---
 
@@ -370,10 +428,9 @@ zone_name = "<zone>"
 ## 11. GitHub Actions — Daily Snapshot
 
 ```yaml
-# .github/workflows/fetch-prices.yml
 on:
   schedule:
-    - cron: "0 2 * * *"   # 02:00 UTC daily
+    - cron: "0 2 * * *"
   workflow_dispatch:
 
 jobs:
@@ -390,7 +447,7 @@ jobs:
           git push
 ```
 
-The snapshot script uses Playwright (headless Chromium) on the GitHub Actions runner to bypass the Cloudflare JS challenge, fetches all country configs, and writes them to `public/data/fallback/{CC}.json`. Playwright is required because the CF challenge cannot be solved by a plain `fetch` call.
+The snapshot script uses Playwright (headless Chromium) to bypass the Cloudflare JS challenge, fetches all country configs, and writes them to `public/data/fallback/{CC}.json`.
 
 ---
 
@@ -402,8 +459,9 @@ The snapshot script uses Playwright (headless Chromium) on the GitHub Actions ru
 | CF Worker also fails | Load static fallback JSON, show "prices may be outdated" banner |
 | Static fallback missing | Show full error state with retry button |
 | Exchange rate fetch fails | Show prices in original currency only, warn user |
-| Single country config fails | Show that country's row with all plans as "N/A", continue loading others |
-| Network offline | Show cached TanStack Query data if available, else error state |
+| Single country config fails | Show that country's row as "N/A", continue loading others |
+| Non-standard country code (US2, EU, XK) | `Intl.DisplayNames.of()` wrapped in try-catch; falls back to raw code |
+| Network offline | Show sessionStorage cache if available, else error state |
 
 ---
 
@@ -413,13 +471,14 @@ The snapshot script uses Playwright (headless Chromium) on the GitHub Actions ru
 - **Worker:** Cloudflare Worker bound to the Pages project
 - **Build command:** `npm run build`
 - **Output directory:** `dist`
-- **Environment variables:** none required for production (all API URLs are public)
+- **Environment variables:** none required for production
 
 ---
 
 ## 14. Out of Scope
 
 - API usage/token pricing (only subscription tiers)
+- Region comparison tab (deferred — can be added as a second tab in a future iteration)
 - User accounts or saved comparisons
 - Historical price tracking
 - Mobile app
