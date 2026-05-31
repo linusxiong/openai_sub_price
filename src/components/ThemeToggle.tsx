@@ -1,3 +1,4 @@
+import { Button } from "@heroui/react";
 import { Sun, Moon } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import { usePreferences } from "../store/preferences";
@@ -10,9 +11,7 @@ export function ThemeToggle() {
   useEffect(() => {
     const root = document.documentElement;
     if (theme === "system") {
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       root.classList.toggle("dark", prefersDark);
     } else {
       root.classList.toggle("dark", theme === "dark");
@@ -35,17 +34,15 @@ export function ThemeToggle() {
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
 
-  const toggle = () => {
-    setTheme(isDark ? "light" : "dark");
-  };
-
   return (
-    <button
-      onClick={toggle}
+    <Button
+      variant="ghost"
+      size="sm"
+      isIconOnly
+      onPress={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? t("ui.lightMode") : t("ui.darkMode")}
-      className="h-8 w-8 flex items-center justify-center rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
     >
-      {isDark ? <Sun size={18} /> : <Moon size={18} />}
-    </button>
+      {isDark ? <Sun size={17} /> : <Moon size={17} />}
+    </Button>
   );
 }

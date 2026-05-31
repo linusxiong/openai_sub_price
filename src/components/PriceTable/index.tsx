@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Button, Chip } from "@heroui/react";
 import { ArrowUp, ArrowDown } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import type { CountryConfig, PlanKey } from "../../types/pricing";
@@ -139,47 +140,43 @@ export function PriceTable({
   return (
     <div className="flex flex-col gap-3">
       {exchangeRateError && (
-        <div className="px-3 py-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-md border border-amber-200 dark:border-amber-800">
+        <Chip color="warning" variant="soft" size="sm">
           {t("ui.exchangeRateError")}
-        </div>
+        </Chip>
       )}
       <div className="flex items-center gap-2">
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {t("billing.label")}:
         </span>
-        <div className="inline-flex rounded-md border border-zinc-300 dark:border-zinc-700 overflow-hidden">
-          <button
-            onClick={() => setBillingInterval("month")}
-            className={`px-3 py-1 text-xs font-medium transition-colors ${
-              billingInterval === "month"
-                ? "bg-blue-500 text-white"
-                : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            }`}
+        <div className="inline-flex rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+          <Button
+            variant={billingInterval === "month" ? "primary" : "tertiary"}
+            size="sm"
+            onPress={() => setBillingInterval("month")}
           >
             {t("billing.monthly")}
-          </button>
-          <button
-            onClick={() => setBillingInterval("year")}
-            className={`px-3 py-1 text-xs font-medium transition-colors ${
-              billingInterval === "year"
-                ? "bg-blue-500 text-white"
-                : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            }`}
+          </Button>
+          <Button
+            variant={billingInterval === "year" ? "primary" : "tertiary"}
+            size="sm"
+            onPress={() => setBillingInterval("year")}
           >
             {t("billing.annual")}
-          </button>
+          </Button>
         </div>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+      <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
         <table className="w-full text-sm" aria-label={t("app.title")}>
           <thead className="sticky top-0 z-10 bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
             <tr>
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-zinc-600 dark:text-zinc-400 whitespace-nowrap ${
-                    col.sortable ? "cursor-pointer select-none hover:text-zinc-900 dark:hover:text-zinc-200" : ""
-                  }`}
+                  className={`px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400 whitespace-nowrap ${
+                    col.sortable
+                      ? "cursor-pointer select-none hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                      : ""
+                  } ${sortPlan === col.key ? "text-zinc-900 dark:text-zinc-100" : ""}`}
                   onClick={() => col.sortable && handleSort(col.key)}
                   aria-sort={
                     sortPlan === col.key
@@ -193,8 +190,8 @@ export function PriceTable({
                     {col.label}
                     {sortPlan === col.key && (
                       sortDirection === "ascending"
-                        ? <ArrowUp size={12} weight="bold" />
-                        : <ArrowDown size={12} weight="bold" />
+                        ? <ArrowUp size={11} weight="bold" />
+                        : <ArrowDown size={11} weight="bold" />
                     )}
                   </span>
                 </th>
@@ -205,22 +202,22 @@ export function PriceTable({
             {sortedRows.map((row, idx) => (
               <tr
                 key={row.countryCode}
-                className={`border-b border-zinc-100 dark:border-zinc-800/50 ${
-                  idx % 2 === 1 ? "bg-zinc-50 dark:bg-zinc-900/50" : ""
+                className={`border-b border-zinc-100 dark:border-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-900/60 transition-colors ${
+                  idx % 2 === 1 ? "bg-zinc-50/60 dark:bg-zinc-900/30" : ""
                 }`}
               >
                 <td className="px-3 py-2">
-                  <span className="font-mono text-xs text-zinc-400">
+                  <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500">
                     {row.rank}
                   </span>
                 </td>
                 <td className="px-3 py-2">
-                  <span className="whitespace-nowrap text-sm">
+                  <span className="whitespace-nowrap text-sm font-medium text-zinc-800 dark:text-zinc-200">
                     {row.flag} {row.countryName}
                   </span>
                 </td>
                 <td className="px-3 py-2">
-                  <span className="font-mono text-xs text-zinc-600 dark:text-zinc-400">
+                  <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
                     {row.currencyCode}
                   </span>
                 </td>
