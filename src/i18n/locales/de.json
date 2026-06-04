@@ -14,8 +14,8 @@
     "free": "Kostenlos",
     "go": "Go",
     "plus": "Plus",
-    "prolite": "Pro Lite",
-    "pro": "Pro",
+    "prolite": "Pro 5x",
+    "pro": "Pro 20x",
     "business": "Team",
     "nonProfit": "Non-Profit"
   },
@@ -43,7 +43,7 @@
   },
   "sidebar": {
     "lowestPrice": "Günstigster Preis",
-    "savingsVsHighest": "{{pct}}% günstiger als der höchste",
+    "savingsVsUsPrice": "{{pct}}% günstiger als der US-Preis",
     "priceDistribution": "Preisverteilung"
   }
 }

@@ -100,14 +100,14 @@ export function PriceTable({
   }, []);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 min-w-0 w-full max-w-full">
       {exchangeRateError && (
         <div className="px-3 py-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
           {t("ui.exchangeRateError")}
         </div>
       )}
-      <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
-        <table className="w-full text-sm" aria-label={t("app.title")}>
+      <div className="overflow-x-auto w-full max-w-full rounded-xl border border-zinc-200 dark:border-zinc-800">
+        <table className="w-full min-w-[36rem] text-sm" aria-label={t("app.title")}>
           <thead className="sticky top-0 z-10 bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
             <tr>
               <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400 w-10">

@@ -1,12 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { TrendDown } from "@phosphor-icons/react";
 import { formatCurrency } from "../../utils/currency";
+import { calculateSavingsPct } from "./priceComparison";
 
 interface LowestPriceCardProps {
   lowestPrice: number;
   lowestCountryName: string;
   lowestFlag: string;
-  highestPrice: number;
+  referencePrice: number | null;
   displayCurrency: string;
   locale: string;
 }
@@ -15,15 +16,12 @@ export function LowestPriceCard({
   lowestPrice,
   lowestCountryName,
   lowestFlag,
-  highestPrice,
+  referencePrice,
   displayCurrency,
   locale,
 }: LowestPriceCardProps) {
   const { t } = useTranslation();
-  const savingsPct =
-    highestPrice > 0
-      ? Math.round(((highestPrice - lowestPrice) / highestPrice) * 100)
-      : 0;
+  const savingsPct = calculateSavingsPct(lowestPrice, referencePrice);
 
   return (
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 flex flex-col gap-3">
@@ -42,7 +40,7 @@ export function LowestPriceCard({
         <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
           <TrendDown size={14} weight="bold" />
           <span>
-            {t("sidebar.savingsVsHighest", { pct: savingsPct })}
+            {t("sidebar.savingsVsUsPrice", { pct: savingsPct })}
           </span>
         </div>
       )}

@@ -60,7 +60,7 @@ export default function App() {
 
             {/* Table + sidebar layout */}
             <div className="flex flex-col md:flex-row gap-4 items-start">
-              <div className="flex-1 min-w-0">
+              <div className="w-full flex-1 min-w-0">
                 <PriceTable
                   configs={configs}
                   exchangeRates={exchangeRates.data}

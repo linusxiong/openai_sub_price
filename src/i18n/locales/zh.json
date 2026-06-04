@@ -14,8 +14,8 @@
     "free": "免费",
     "go": "Go",
     "plus": "Plus",
-    "prolite": "Pro Lite",
-    "pro": "Pro",
+    "prolite": "Pro 5x",
+    "pro": "Pro 20x",
     "business": "团队版",
     "nonProfit": "非营利"
   },
@@ -43,7 +43,7 @@
   },
   "sidebar": {
     "lowestPrice": "最低价格",
-    "savingsVsHighest": "比最高价省 {{pct}}%",
+    "savingsVsUsPrice": "比美国原价低 {{pct}}%",
     "priceDistribution": "价格分布"
   }
 }

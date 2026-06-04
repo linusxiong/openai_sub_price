@@ -14,8 +14,8 @@
     "free": "無料",
     "go": "Go",
     "plus": "Plus",
-    "prolite": "Pro Lite",
-    "pro": "Pro",
+    "prolite": "Pro 5x",
+    "pro": "Pro 20x",
     "business": "チーム",
     "nonProfit": "非営利"
   },
@@ -43,7 +43,7 @@
   },
   "sidebar": {
     "lowestPrice": "最安値",
-    "savingsVsHighest": "最高値より {{pct}}% 安い",
+    "savingsVsUsPrice": "米国価格より {{pct}}% 安い",
     "priceDistribution": "価格分布"
   }
 }

@@ -11,13 +11,13 @@ export function CurrencySelector() {
       aria-label={t("ui.currencyLabel")}
       value={displayCurrency}
       onChange={(e) => setDisplayCurrency(e.target.value)}
-      className="h-8 px-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+      className="h-8 min-w-0 flex-1 sm:flex-none sm:w-auto px-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
     >
       {CURRENCY_OPTIONS.map((code) => {
         const m = CURRENCY_META[code];
         return (
           <option key={code} value={code}>
-            {m ? `${m.flag} ${m.name} (${code})` : code}
+            {m ? `${m.flag} ${code}` : code}
           </option>
         );
       })}

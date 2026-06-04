@@ -7,6 +7,7 @@ import { convertPrice } from "../../utils/currency";
 import { usePreferences } from "../../store/preferences";
 import { LowestPriceCard } from "./LowestPriceCard";
 import { PriceDistribution } from "./PriceDistribution";
+import { getUsReferencePrice } from "./priceComparison";
 
 interface PriceSidebarProps {
   configs: Map<string, CountryConfig>;
@@ -73,7 +74,13 @@ export function PriceSidebar({ configs, exchangeRates }: PriceSidebarProps) {
   if (priceRows.length === 0) return null;
 
   const lowest = priceRows[0];
-  const highest = priceRows[priceRows.length - 1];
+  const usReferencePrice = getUsReferencePrice({
+    configs,
+    activePlan,
+    billingInterval,
+    displayCurrency,
+    exchangeRates,
+  });
 
   return (
     <div className="flex flex-col gap-3 w-full">
@@ -81,7 +88,7 @@ export function PriceSidebar({ configs, exchangeRates }: PriceSidebarProps) {
         lowestPrice={lowest.convertedPrice}
         lowestCountryName={lowest.countryName}
         lowestFlag={lowest.flag}
-        highestPrice={highest.convertedPrice}
+        referencePrice={usReferencePrice}
         displayCurrency={displayCurrency}
         locale={i18n.language}
       />
